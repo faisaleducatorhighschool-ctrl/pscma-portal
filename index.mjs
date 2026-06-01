@@ -66389,7 +66389,10 @@ if (!process.env.DATABASE_URL) {
     "DATABASE_URL must be set. Did you forget to provision a database?"
   );
 }
-var pool = new Pool3({ connectionString: process.env.DATABASE_URL });
+var pool = new Pool3({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+});
 var db = drizzle(pool, { schema: schema_exports });
 
 // src/lib/fees.ts
@@ -68207,7 +68210,7 @@ if (process.env.NODE_ENV === "production") {
   const __dirname2 = path.dirname(fileURLToPath(import.meta.url));
   const publicDir = path.join(__dirname2, "public");
   app.use(import_express15.default.static(publicDir));
-  app.get("(.*)", (_req, res) => {
+  app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(publicDir, "index.html"));
   });
 }

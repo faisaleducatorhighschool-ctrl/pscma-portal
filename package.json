@@ -1,13 +1,11 @@
 {
   "name": "pscma-portal",
   "version": "1.0.0",
-  "description": "PSCMA - Private Schools & Colleges Management Association Portal",
-  "type": "module",
-  "main": "index.mjs",
+  "private": true,
   "scripts": {
-    "start": "node index.mjs"
+    "start": "node patch.cjs && node index.mjs"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20"
   }
 }
