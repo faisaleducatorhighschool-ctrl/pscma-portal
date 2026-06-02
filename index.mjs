@@ -68223,6 +68223,223 @@ if (process.env.NODE_ENV === "production") {
 }
 var app_default = app;
 
+// src/lib/migrate.ts
+var MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS "session" (
+  "sid" varchar NOT NULL COLLATE "default",
+  "sess" json NOT NULL,
+  "expire" timestamp(6) NOT NULL,
+  CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+
+CREATE TABLE IF NOT EXISTS "users" (
+  "id" serial PRIMARY KEY,
+  "email" text NOT NULL UNIQUE,
+  "password_hash" text NOT NULL,
+  "role" text NOT NULL DEFAULT 'general_member',
+  "status" text NOT NULL DEFAULT 'pending',
+  "institution_name" text,
+  "institution_type" text,
+  "owner_name" text,
+  "mobile" text,
+  "address" text,
+  "student_strength" integer,
+  "annual_fee" numeric(10,2),
+  "logo_url" text,
+  "membership_start" timestamp,
+  "membership_expiry" timestamp,
+  "exec_start_date" timestamp,
+  "exec_end_date" timestamp,
+  "can_manage_events" boolean NOT NULL DEFAULT false,
+  "password_reset_token" text,
+  "password_reset_expiry" timestamp,
+  "approved_at" timestamp,
+  "created_at" timestamp NOT NULL DEFAULT now(),
+  "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "events" (
+  "id" serial PRIMARY KEY,
+  "title" text NOT NULL,
+  "title_urdu" text,
+  "category" text NOT NULL,
+  "description" text NOT NULL,
+  "event_date" timestamp NOT NULL,
+  "registration_deadline" timestamp NOT NULL,
+  "venue" text NOT NULL,
+  "status" text NOT NULL DEFAULT 'upcoming',
+  "banner_url" text,
+  "created_by" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now(),
+  "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "event_registrations" (
+  "id" serial PRIMARY KEY,
+  "event_id" integer NOT NULL REFERENCES "events"("id"),
+  "member_id" integer NOT NULL REFERENCES "users"("id"),
+  "notes" text,
+  "registered_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "meetings" (
+  "id" serial PRIMARY KEY,
+  "title" text NOT NULL,
+  "title_urdu" text,
+  "meeting_date" timestamp NOT NULL,
+  "venue" text NOT NULL,
+  "agenda" text NOT NULL,
+  "status" text NOT NULL DEFAULT 'scheduled',
+  "minutes" text,
+  "notice_url" text,
+  "created_by" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now(),
+  "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "meeting_attendance" (
+  "id" serial PRIMARY KEY,
+  "meeting_id" integer NOT NULL REFERENCES "meetings"("id"),
+  "member_id" integer NOT NULL REFERENCES "users"("id"),
+  "present" boolean NOT NULL DEFAULT false,
+  "marked_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "elections" (
+  "id" serial PRIMARY KEY,
+  "title" text NOT NULL,
+  "description" text,
+  "start_date" timestamp NOT NULL,
+  "end_date" timestamp NOT NULL,
+  "status" text NOT NULL DEFAULT 'upcoming',
+  "created_by" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now(),
+  "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "candidates" (
+  "id" serial PRIMARY KEY,
+  "election_id" integer NOT NULL REFERENCES "elections"("id"),
+  "member_id" integer NOT NULL REFERENCES "users"("id"),
+  "position" text NOT NULL,
+  "manifesto" text,
+  "status" text NOT NULL DEFAULT 'registered',
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "votes" (
+  "id" serial PRIMARY KEY,
+  "election_id" integer NOT NULL REFERENCES "elections"("id"),
+  "candidate_id" integer NOT NULL REFERENCES "candidates"("id"),
+  "voter_id" integer NOT NULL REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "fund_records" (
+  "id" serial PRIMARY KEY,
+  "type" text NOT NULL,
+  "amount" numeric(12,2) NOT NULL,
+  "category" text NOT NULL,
+  "description" text NOT NULL,
+  "date" timestamp NOT NULL,
+  "member_id" integer REFERENCES "users"("id"),
+  "receipt_url" text,
+  "created_by" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "dues" (
+  "id" serial PRIMARY KEY,
+  "member_id" integer NOT NULL REFERENCES "users"("id"),
+  "amount" numeric(10,2) NOT NULL,
+  "due_date" timestamp NOT NULL,
+  "status" text NOT NULL DEFAULT 'pending',
+  "year" integer NOT NULL,
+  "paid_at" timestamp,
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "documents" (
+  "id" serial PRIMARY KEY,
+  "title" text NOT NULL,
+  "title_urdu" text,
+  "category" text NOT NULL,
+  "description" text,
+  "file_url" text NOT NULL,
+  "file_size" integer,
+  "download_count" integer NOT NULL DEFAULT 0,
+  "uploaded_by" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "notifications" (
+  "id" serial PRIMARY KEY,
+  "user_id" integer REFERENCES "users"("id"),
+  "title" text NOT NULL,
+  "message" text NOT NULL,
+  "category" text NOT NULL,
+  "is_read" boolean NOT NULL DEFAULT false,
+  "link" text,
+  "target_role" text,
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "gallery_items" (
+  "id" serial PRIMARY KEY,
+  "title" text NOT NULL,
+  "type" text NOT NULL,
+  "url" text NOT NULL,
+  "thumbnail_url" text,
+  "event_id" integer REFERENCES "events"("id"),
+  "uploaded_by" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "system_settings" (
+  "id" serial PRIMARY KEY,
+  "org_name" text NOT NULL DEFAULT 'PSCMA \u2014 Private Schools & Colleges Management Association',
+  "contact_email" text NOT NULL DEFAULT 'info@pscma.org.pk',
+  "contact_phone" text NOT NULL DEFAULT '+92-XXX-XXXXXXX',
+  "contact_address" text NOT NULL DEFAULT 'Khanpur, KPK, Pakistan',
+  "website_url" text NOT NULL DEFAULT 'https://pscma.org.pk',
+  "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "activity_log" (
+  "id" serial PRIMARY KEY,
+  "type" text NOT NULL,
+  "description" text NOT NULL,
+  "actor_id" integer REFERENCES "users"("id"),
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
+INSERT INTO "users" (email, password_hash, role, status, institution_name, institution_type, owner_name, mobile, address, student_strength, annual_fee, membership_start, membership_expiry, approved_at, can_manage_events)
+VALUES
+  ('admin@pscma.org',     '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'super_admin',    'active', 'PSCMA Head Office',         'office',  'System Admin',         '0300-0000000', 'Khanpur, KPK', 0,   0,     now(), now() + interval ''10 years'', now(), true),
+  ('executive@pscma.org', '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'executive_body', 'active', 'Beacon House School System', 'school',  'Dr. Salman Khan',      '0333-1234567', 'Khanpur, KPK', 850, 10000, now(), now() + interval ''2 years'',  now(), true),
+  ('member@pscma.org',    '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'general_member', 'active', 'Al-Huda Academy',           'school',  'Prof. Aisha Siddiqui', '0321-9876543', 'Khanpur, KPK', 320, 6000,  now(), now() + interval ''2 years'',  now(), false),
+  ('member23@pscma.org',  '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'general_member', 'pending','Bright Future College',     'college', 'Mr. Zubair Ahmed',     '0312-5551234', 'Khanpur, KPK', 150, 3000,  null, null, null, false)
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO "system_settings" (org_name, contact_email, contact_phone, contact_address, website_url)
+VALUES ('PSCMA \u2014 Private Schools & Colleges Management Association', 'info@pscma.org.pk', '+92-XXX-XXXXXXX', 'Khanpur, KPK, Pakistan', 'https://pscma.org.pk')
+ON CONFLICT DO NOTHING;
+`;
+async function runMigrations() {
+  const client = await pool.connect();
+  try {
+    logger.info("Running startup migrations...");
+    await client.query(MIGRATION_SQL);
+    logger.info("Migrations complete.");
+  } catch (err) {
+    logger.error({ err }, "Migration failed");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 // src/index.ts
 var rawPort = process.env["PORT"];
 if (!rawPort) {
@@ -68234,12 +68451,17 @@ var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
-app_default.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
-  logger.info({ port }, "Server listening");
+runMigrations().then(() => {
+  app_default.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+    logger.info({ port }, "Server listening");
+  });
+}).catch((err) => {
+  logger.error({ err }, "Startup migration failed \u2014 exiting");
+  process.exit(1);
 });
 /*! Bundled license information:
 
