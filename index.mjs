@@ -68416,9 +68416,9 @@ CREATE TABLE IF NOT EXISTS "activity_log" (
 
 INSERT INTO "users" (email, password_hash, role, status, institution_name, institution_type, owner_name, mobile, address, student_strength, annual_fee, membership_start, membership_expiry, approved_at, can_manage_events)
 VALUES
-  ('admin@pscma.org',     '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'super_admin',    'active', 'PSCMA Head Office',         'office',  'System Admin',         '0300-0000000', 'Khanpur, KPK', 0,   0,     now(), now() + interval ''10 years'', now(), true),
-  ('executive@pscma.org', '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'executive_body', 'active', 'Beacon House School System', 'school',  'Dr. Salman Khan',      '0333-1234567', 'Khanpur, KPK', 850, 10000, now(), now() + interval ''2 years'',  now(), true),
-  ('member@pscma.org',    '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'general_member', 'active', 'Al-Huda Academy',           'school',  'Prof. Aisha Siddiqui', '0321-9876543', 'Khanpur, KPK', 320, 6000,  now(), now() + interval ''2 years'',  now(), false),
+  ('admin@pscma.org',     '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'super_admin',    'active', 'PSCMA Head Office',         'office',  'System Admin',         '0300-0000000', 'Khanpur, KPK', 0,   0,     now(), now() + interval '10 years', now(), true),
+  ('executive@pscma.org', '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'executive_body', 'active', 'Beacon House School System', 'school',  'Dr. Salman Khan',      '0333-1234567', 'Khanpur, KPK', 850, 10000, now(), now() + interval '2 years',  now(), true),
+  ('member@pscma.org',    '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'general_member', 'active', 'Al-Huda Academy',           'school',  'Prof. Aisha Siddiqui', '0321-9876543', 'Khanpur, KPK', 320, 6000,  now(), now() + interval '2 years',  now(), false),
   ('member23@pscma.org',  '$2b$12$HRy2mx0BVcsKXd2QfBS2/uz4Oglq0NZzvIAQnWgIbspsoLnCTljTm', 'general_member', 'pending','Bright Future College',     'college', 'Mr. Zubair Ahmed',     '0312-5551234', 'Khanpur, KPK', 150, 3000,  null, null, null, false)
 ON CONFLICT (email) DO NOTHING;
 
