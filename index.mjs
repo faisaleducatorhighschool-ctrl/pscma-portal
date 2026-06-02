@@ -66567,29 +66567,36 @@ async function sendMemberRejectionEmail(email3, institutionName) {
 import crypto2 from "crypto";
 var router2 = (0, import_express2.Router)();
 router2.post("/auth/login", async (req, res) => {
-  const parsed = LoginBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
+  try {
+    const parsed = LoginBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const { email: email3, password } = parsed.data;
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email3.toLowerCase())).limit(1);
+    if (!user) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+    const valid = await bcryptjs_default.compare(password, user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+    const session2 = req.session;
+    session2.userId = user.id;
+    session2.role = user.role;
+    session2.canManageEvents = user.canManageEvents;
+    if (user.execEndDate) session2.execEndDate = user.execEndDate.toISOString();
+    const { passwordHash: _, passwordResetToken: __, passwordResetExpiry: ___, ...safeUser } = user;
+    res.json({ user: { ...safeUser, membershipExpiry: user.membershipExpiry?.toISOString() ?? null, membershipStart: user.membershipStart?.toISOString() ?? null, approvedAt: user.approvedAt?.toISOString() ?? null, execStartDate: user.execStartDate?.toISOString() ?? null, execEndDate: user.execEndDate?.toISOString() ?? null, createdAt: user.createdAt.toISOString() } });
+  } catch (err) {
+    const e = err;
+    const root = e.cause?.message ?? e.message ?? String(err);
+    const code = e.cause?.code ?? e.code ?? "";
+    res.status(500).json({ error: `DB error [${code}]: ${root}` });
   }
-  const { email: email3, password } = parsed.data;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email3.toLowerCase())).limit(1);
-  if (!user) {
-    res.status(401).json({ error: "Invalid email or password" });
-    return;
-  }
-  const valid = await bcryptjs_default.compare(password, user.passwordHash);
-  if (!valid) {
-    res.status(401).json({ error: "Invalid email or password" });
-    return;
-  }
-  const session2 = req.session;
-  session2.userId = user.id;
-  session2.role = user.role;
-  session2.canManageEvents = user.canManageEvents;
-  if (user.execEndDate) session2.execEndDate = user.execEndDate.toISOString();
-  const { passwordHash: _, passwordResetToken: __, passwordResetExpiry: ___, ...safeUser } = user;
-  res.json({ user: { ...safeUser, membershipExpiry: user.membershipExpiry?.toISOString() ?? null, membershipStart: user.membershipStart?.toISOString() ?? null, approvedAt: user.approvedAt?.toISOString() ?? null, execStartDate: user.execStartDate?.toISOString() ?? null, execEndDate: user.execEndDate?.toISOString() ?? null, createdAt: user.createdAt.toISOString() } });
 });
 router2.post("/auth/register", async (req, res) => {
   const parsed = RegisterBody.safeParse(req.body);
